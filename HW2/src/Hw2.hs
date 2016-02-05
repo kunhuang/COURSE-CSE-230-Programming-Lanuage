@@ -74,7 +74,9 @@ delete _ Emp                = Emp
 delete k (Bind k' v tl tr)
                 | k > k'    = Bind k v tl (Hw2.delete k tr)
                 | k < k'    = Bind k v (Hw2.delete k tl) tr
-                | otherwise = Emp
+                --TODO
+                --only delete the node, retrainning the other nodes in the subtree
+                | otherwise = undefined
 
 -- Part 3: An Interpreter for WHILE
 -- ================================
