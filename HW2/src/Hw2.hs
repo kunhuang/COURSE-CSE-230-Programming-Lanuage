@@ -13,15 +13,17 @@ import Text.Parsec.Combinator hiding (between)
 import Text.Parsec.Char
 import Text.Parsec.String
 
+
+--import Prelude hiding (Maybe (..), Functor (..))
 -- Problem 0: All About You
 -- ========================
 
 -- Tell us your name, email and student ID, by replacing the respective
 -- strings below
 
-myName  = "Kun Huang"
-myEmail = "kuh004@ucsd.edu"
-mySID   = "A53097903"
+myName  = "Di Huang"
+myEmail = "dih024@eng.ucsd.edu"
+mySID   = "A53081199"
 
 
 -- Problem 1: All About `foldl`
@@ -32,31 +34,28 @@ mySID   = "A53097903"
 -- 1. Describe `foldl` and give an implementation:
 
 myFoldl :: (a -> b -> a) -> a -> [b] -> a
-myFoldl _ a [] = a
+myFoldl _ a [] = a 
 myFoldl f a (x:xs) = myFoldl f (f a x) xs
 
 -- 2. Using the standard `foldl` (not `myFoldl`), define the list reverse function:
 
 myReverse :: [a] -> [a]
-myReverse = Prelude.foldl (flip (:)) []
+myReverse = Prelude.foldl (flip(:))[]
 
 -- 3. Define `foldr` in terms of `foldl`:
 
 myFoldr :: (a -> b -> b) -> b -> [a] -> b
-myFoldr f b as = Prelude.foldl (flip f) b (reverse as)
+myFoldr f a xs = Prelude.foldl (flip f) a (reverse xs)
+
 
 -- 4. Define `foldl` in terms of the standard `foldr` (not `myFoldr`):
 
 myFoldl2 :: (a -> b -> a) -> a -> [b] -> a
-myFoldl2 f b as = Prelude.foldr (flip f) b (reverse as)
+myFoldl2 f b xs = Prelude.foldr (flip f) b (reverse xs)
 
 -- 5. Try applying `foldl` to a gigantic list. Why is it so slow?
 --    Try using `foldl'` (from [Data.List](http://www.haskell.org/ghc/docs/latest/html/libraries/base/Data-List.html#3))
 --    instead; can you explain why it's faster?
-
--- Data.List.foldl (+) 0 [1..100000000] --- took 138
--- Prelude.foldl (+) 0 [1..100000000]   --- took 134s
--- why: TODO
 
 -- Part 2: Binary Search Trees
 -- ===========================
@@ -70,14 +69,17 @@ data BST k v = Emp
 -- Define a `delete` function for BSTs of this type:
 
 delete :: (Ord k) => k -> BST k v -> BST k v
-delete _ Emp                = Emp
-delete k (Bind k' v tl tr)
-                | k > k'    = Bind k v tl (Hw2.delete k tr)
-                | k < k'    = Bind k v (Hw2.delete k tl) tr
-                --TODO
-                --only delete the node, retrainning the other nodes in the subtree
-                | otherwise = undefined
-
+delete _ Emp = Emp
+delete k' (Bind k v l r) 
+        | k' > k    = Bind k v l (Hw2.delete k' r)
+        | k' < k    = Bind k v (Hw2.delete k' l) r
+        | otherwise = case l of
+                    Emp -> r
+                    _   -> Bind key val (Hw2.delete key l) r
+                        where
+                        (key, val)              = findIn l
+                        findIn (Bind k v _ Emp) = (k, v)
+                        findIn (Bind _ _ _ r)   = findIn r
 -- Part 3: An Interpreter for WHILE
 -- ================================
 
@@ -161,9 +163,23 @@ evalOp Plus (IntVal i) (IntVal j) = IntVal (i+j)
 
 -- >
 
-evalE (Var x)      = error "TBD"
-evalE (Val v)      = error "TBD"
-evalE (Op o e1 e2) = error "TBD"
+evalE (Var x)      = do 
+						t <- get
+						return (findWithDefault (IntVal 0) x t)
+
+evalE (Val v)      = return v
+evalE (Op o e1 e2) = do
+						(IntVal v1) <- evalE(e1)
+						(IntVal v2) <- evalE(e2)
+						case o of 
+							Plus	-> return (IntVal 	(v1 +  v2))
+							Minus	-> return (IntVal 	(v1 -  v2))
+							Times	-> return (IntVal 	(v1 *  v2))
+							Divide	-> return (IntVal 	(v1 `div` v2))
+							Gt  	-> return (BoolVal 	(v1 >  v2))
+							Ge		-> return (BoolVal 	(v1 >= v2))
+							Lt		-> return (BoolVal 	(v1 <  v2))
+							Le		-> return (BoolVal 	(v1 <= v2))
 
 -- Statement Evaluator
 -- -------------------
@@ -181,23 +197,36 @@ evalS :: Statement -> State Store ()
 -- Thus, to "update" the value of the store with the new store `s'`
 -- do `put s'`.
 
-evalS (Assign x e )    = error "TBD"
-evalS w@(While e s)    = error "TBD"
-evalS Skip             = error "TBD"
-evalS (Sequence s1 s2) = error "TBD"
-evalS (If e s1 s2)     = error "TBD"
+evalS (Assign x e )    = do
+							s <- get
+							v <- evalE e
+							put $ insert x v s
+evalS w@(While e s)    = do
+							v <- evalE e
+						 	case v of
+						 		IntVal _		->	evalS Skip
+						 		BoolVal	True	->	do evalS s; evalS w	
+						 		BoolVal False 	-> 	evalS Skip
+
+evalS Skip             = return ()
+evalS (Sequence s1 s2) = do evalS s1;evalS s2
+evalS (If e s1 s2)     = do
+							v 	<-	evalE e
+							case v of
+								IntVal	_		->	evalS Skip
+								BoolVal	True 	-> 	evalS s1
+								BoolVal	False 	->	evalS s2
 
 -- In the `If` case, if `e` evaluates to a non-boolean value, just skip both
 -- the branches. (We will convert it into a type error in the next homework.)
 -- Finally, write a function
 
 execS :: Statement -> Store -> Store
-execS = error "TBD"
+execS stmt s = execState (evalS stmt) s
 
 -- such that `execS stmt store` returns the new `Store` that results
 -- from evaluating the command `stmt` from the world `store`.
 -- **Hint:** You may want to use the library function
-
 -- ~~~~~{.haskell}
 -- execState :: State s a -> s -> s
 -- ~~~~~
@@ -249,25 +278,35 @@ valueP = intP <|> boolP
 -- To do so, fill in the implementations of
 
 intP :: Parser Value
-intP = error "TBD"
+intP = do
+		x <- many1 digit
+		return $ IntVal $ read x
 
 -- Next, define a parser that will accept a
 -- particular string `s` as a given value `x`
 
 constP :: String -> a -> Parser a
-constP s x = error "TBD"
+constP s x = do
+				string s
+				return x
 
 -- and use the above to define a parser for boolean values
 -- where `"true"` and `"false"` should be parsed appropriately.
 
 boolP :: Parser Value
-boolP = error "TBD"
+boolP = constP "true" (BoolVal True) <|> constP "false" (BoolVal False)
 
 -- Continue to use the above to parse the binary operators
 
 opP :: Parser Bop
-opP = error "TBD"
-
+opP = constP "+" 	Plus <|>
+	  constP "-" 	Minus <|>
+	  constP "*" 	Times <|>
+	  constP "/" 	Divide <|>
+	  constP ">" 	Gt <|>
+	  constP ">=" 	Ge <|>
+	  constP "<" 	Lt <|>
+	  constP "<="	Le
 
 -- Parsing Expressions
 -- -------------------
@@ -281,16 +320,78 @@ varP = many1 upper
 -- Use the above to write a parser for `Expression` values
 
 exprP :: Parser Expression
-exprP = error "TBD"
+exprP = try expExp <|> try parenExp <|> try varExp <|> try valExp
+		where 
+			expExp = do 
+				x <- try parenExp <|> try varExp <|> try valExp
+				skipMany space
+				o <- try opP
+				skipMany space
+				y <- exprP
+				return (Op o x y)
+			parenExp = do
+				string "("
+				x <- exprP
+				string ")"
+				return x
+			varExp = do
+				v <- varP
+				return (Var v)
+			valExp = do
+				v <- valueP
+				return (Val v)
 
--- Parsing Statements
+-- Parsing Statements 
 -- ------------------
 
 -- Next, use the expression parsers to build a statement parser
 
 statementP :: Parser Statement
-statementP = error "TBD"
-
+statementP = try sequenceP <|> try ifP <|>try whileP <|>try assignP <|>try skipP
+	where
+		sequenceP = do
+			s1 <-try ifP <|>try whileP <|>try assignP
+			skipMany space
+			string ";"
+			skipMany space
+			s2 <- statementP
+			return (Sequence s1 s2)
+		ifP = do
+			string "if"
+			skipMany space
+			e <- exprP
+			skipMany space
+			string "then"
+			skipMany space
+			s1 <- statementP
+			skipMany space
+			string "else"
+			skipMany space
+			s2 <- statementP
+			skipMany space
+			string "endif"
+			return (If e s1 s2)
+		whileP = do
+			string "while"
+			skipMany space
+			e <- exprP
+			skipMany space
+			string "do"
+			skipMany space
+			s <- statementP
+			skipMany space
+			string "endwhile"
+			return (While e s)
+		assignP = do
+			v <- varP
+			skipMany space
+			string ":="
+			skipMany space
+			e <- exprP
+			return (Assign v e)
+		skipP = do
+			string "skip"
+			return Skip
 -- When you are done, we can put the parser and evaluator together
 -- in the end-to-end interpreter function
 
@@ -310,3 +411,4 @@ runFile s = do p <- parseFromFile statementP s
 -- Output Store:
 -- fromList [("F",IntVal 2),("N",IntVal 0),("X",IntVal 1),("Z",IntVal 2)]
 -- ~~~~~
+
