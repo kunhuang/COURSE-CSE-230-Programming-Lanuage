@@ -21,9 +21,9 @@ import Text.Parsec.String
 -- Tell us your name, email and student ID, by replacing the respective
 -- strings below
 
-myName  = "Di Huang"
-myEmail = "dih024@eng.ucsd.edu"
-mySID   = "A53081199"
+myName  = "Kun Huang"
+myEmail = "kuh004@eng.ucsd.edu"
+mySID   = "A53097903"
 
 
 -- Problem 1: All About `foldl`
@@ -164,22 +164,22 @@ evalOp Plus (IntVal i) (IntVal j) = IntVal (i+j)
 -- >
 
 evalE (Var x)      = do 
-						t <- get
-						return (findWithDefault (IntVal 0) x t)
+                        t <- get
+                        return (findWithDefault (IntVal 0) x t)
 
 evalE (Val v)      = return v
 evalE (Op o e1 e2) = do
-						(IntVal v1) <- evalE(e1)
-						(IntVal v2) <- evalE(e2)
-						case o of 
-							Plus	-> return (IntVal 	(v1 +  v2))
-							Minus	-> return (IntVal 	(v1 -  v2))
-							Times	-> return (IntVal 	(v1 *  v2))
-							Divide	-> return (IntVal 	(v1 `div` v2))
-							Gt  	-> return (BoolVal 	(v1 >  v2))
-							Ge		-> return (BoolVal 	(v1 >= v2))
-							Lt		-> return (BoolVal 	(v1 <  v2))
-							Le		-> return (BoolVal 	(v1 <= v2))
+                        (IntVal v1) <- evalE(e1)
+                        (IntVal v2) <- evalE(e2)
+                        case o of 
+                            Plus    -> return (IntVal   (v1 +  v2))
+                            Minus   -> return (IntVal   (v1 -  v2))
+                            Times   -> return (IntVal   (v1 *  v2))
+                            Divide  -> return (IntVal   (v1 `div` v2))
+                            Gt      -> return (BoolVal  (v1 >  v2))
+                            Ge      -> return (BoolVal  (v1 >= v2))
+                            Lt      -> return (BoolVal  (v1 <  v2))
+                            Le      -> return (BoolVal  (v1 <= v2))
 
 -- Statement Evaluator
 -- -------------------
@@ -198,24 +198,24 @@ evalS :: Statement -> State Store ()
 -- do `put s'`.
 
 evalS (Assign x e )    = do
-							s <- get
-							v <- evalE e
-							put $ insert x v s
+                            s <- get
+                            v <- evalE e
+                            put $ insert x v s
 evalS w@(While e s)    = do
-							v <- evalE e
-						 	case v of
-						 		IntVal _		->	evalS Skip
-						 		BoolVal	True	->	do evalS s; evalS w	
-						 		BoolVal False 	-> 	evalS Skip
+                            v <- evalE e
+                            case v of
+                                IntVal _        ->  evalS Skip
+                                BoolVal True    ->  do evalS s; evalS w 
+                                BoolVal False   ->  evalS Skip
 
 evalS Skip             = return ()
 evalS (Sequence s1 s2) = do evalS s1;evalS s2
 evalS (If e s1 s2)     = do
-							v 	<-	evalE e
-							case v of
-								IntVal	_		->	evalS Skip
-								BoolVal	True 	-> 	evalS s1
-								BoolVal	False 	->	evalS s2
+                            v   <-  evalE e
+                            case v of
+                                IntVal  _       ->  evalS Skip
+                                BoolVal True    ->  evalS s1
+                                BoolVal False   ->  evalS s2
 
 -- In the `If` case, if `e` evaluates to a non-boolean value, just skip both
 -- the branches. (We will convert it into a type error in the next homework.)
@@ -279,16 +279,16 @@ valueP = intP <|> boolP
 
 intP :: Parser Value
 intP = do
-		x <- many1 digit
-		return $ IntVal $ read x
+        x <- many1 digit
+        return $ IntVal $ read x
 
 -- Next, define a parser that will accept a
 -- particular string `s` as a given value `x`
 
 constP :: String -> a -> Parser a
 constP s x = do
-				string s
-				return x
+                string s
+                return x
 
 -- and use the above to define a parser for boolean values
 -- where `"true"` and `"false"` should be parsed appropriately.
@@ -299,14 +299,14 @@ boolP = constP "true" (BoolVal True) <|> constP "false" (BoolVal False)
 -- Continue to use the above to parse the binary operators
 
 opP :: Parser Bop
-opP = constP "+" 	Plus <|>
-	  constP "-" 	Minus <|>
-	  constP "*" 	Times <|>
-	  constP "/" 	Divide <|>
-	  constP ">" 	Gt <|>
-	  constP ">=" 	Ge <|>
-	  constP "<" 	Lt <|>
-	  constP "<="	Le
+opP = constP "+"    Plus <|>
+      constP "-"    Minus <|>
+      constP "*"    Times <|>
+      constP "/"    Divide <|>
+      constP ">"    Gt <|>
+      constP ">="   Ge <|>
+      constP "<"    Lt <|>
+      constP "<="   Le
 
 -- Parsing Expressions
 -- -------------------
@@ -321,25 +321,25 @@ varP = many1 upper
 
 exprP :: Parser Expression
 exprP = try expExp <|> try parenExp <|> try varExp <|> try valExp
-		where 
-			expExp = do 
-				x <- try parenExp <|> try varExp <|> try valExp
-				skipMany space
-				o <- try opP
-				skipMany space
-				y <- exprP
-				return (Op o x y)
-			parenExp = do
-				string "("
-				x <- exprP
-				string ")"
-				return x
-			varExp = do
-				v <- varP
-				return (Var v)
-			valExp = do
-				v <- valueP
-				return (Val v)
+        where 
+            expExp = do 
+                x <- try parenExp <|> try varExp <|> try valExp
+                skipMany space
+                o <- try opP
+                skipMany space
+                y <- exprP
+                return (Op o x y)
+            parenExp = do
+                string "("
+                x <- exprP
+                string ")"
+                return x
+            varExp = do
+                v <- varP
+                return (Var v)
+            valExp = do
+                v <- valueP
+                return (Val v)
 
 -- Parsing Statements 
 -- ------------------
@@ -348,50 +348,50 @@ exprP = try expExp <|> try parenExp <|> try varExp <|> try valExp
 
 statementP :: Parser Statement
 statementP = try sequenceP <|> try ifP <|>try whileP <|>try assignP <|>try skipP
-	where
-		sequenceP = do
-			s1 <-try ifP <|>try whileP <|>try assignP
-			skipMany space
-			string ";"
-			skipMany space
-			s2 <- statementP
-			return (Sequence s1 s2)
-		ifP = do
-			string "if"
-			skipMany space
-			e <- exprP
-			skipMany space
-			string "then"
-			skipMany space
-			s1 <- statementP
-			skipMany space
-			string "else"
-			skipMany space
-			s2 <- statementP
-			skipMany space
-			string "endif"
-			return (If e s1 s2)
-		whileP = do
-			string "while"
-			skipMany space
-			e <- exprP
-			skipMany space
-			string "do"
-			skipMany space
-			s <- statementP
-			skipMany space
-			string "endwhile"
-			return (While e s)
-		assignP = do
-			v <- varP
-			skipMany space
-			string ":="
-			skipMany space
-			e <- exprP
-			return (Assign v e)
-		skipP = do
-			string "skip"
-			return Skip
+    where
+        sequenceP = do
+            s1 <-try ifP <|>try whileP <|>try assignP
+            skipMany space
+            string ";"
+            skipMany space
+            s2 <- statementP
+            return (Sequence s1 s2)
+        ifP = do
+            string "if"
+            skipMany space
+            e <- exprP
+            skipMany space
+            string "then"
+            skipMany space
+            s1 <- statementP
+            skipMany space
+            string "else"
+            skipMany space
+            s2 <- statementP
+            skipMany space
+            string "endif"
+            return (If e s1 s2)
+        whileP = do
+            string "while"
+            skipMany space
+            e <- exprP
+            skipMany space
+            string "do"
+            skipMany space
+            s <- statementP
+            skipMany space
+            string "endwhile"
+            return (While e s)
+        assignP = do
+            v <- varP
+            skipMany space
+            string ":="
+            skipMany space
+            e <- exprP
+            return (Assign v e)
+        skipP = do
+            string "skip"
+            return Skip
 -- When you are done, we can put the parser and evaluator together
 -- in the end-to-end interpreter function
 
