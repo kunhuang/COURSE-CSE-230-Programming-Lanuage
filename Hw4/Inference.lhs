@@ -5,11 +5,11 @@ Type Inference
 \begin{code}
 {-# LANGUAGE TypeSynonymInstances, FlexibleContexts, OverlappingInstances, FlexibleInstances #-}
 
-import qualified Data.Map as Map 
+import qualified Data.Map as Map
 import Control.Monad.State
 import Control.Monad.Error
 import Control.Monad.Writer
-import Test.QuickCheck 
+import Test.QuickCheck
 import Control.Monad (forM, forM_)
 import Data.List (transpose, intercalate)
 
@@ -29,13 +29,13 @@ quickCheckN n = quickCheckWith $ stdArgs { maxSuccess = n}
 </div>
 
 In this problem, we will take the bare-bones language for which we
-studied [type inference](/lectures/inference.html), add features 
+studied [type inference](/lectures/inference.html), add features
 to it, and update the inference to work with those features.
 
 (a) Pairs
 ---------
 
-The first feature we will add is pairs, ie tuples of size 2. 
+The first feature we will add is pairs, ie tuples of size 2.
 Specifically, we have extended the language of expressions `Expr`
 to include
 
@@ -49,7 +49,7 @@ data Exp = ...
 Correspondingly, we have extended the language of types to include
 
 ~~~~~{.haskell}
-data Type = ... 
+data Type = ...
           |  Type `TCom` Type -- Pair of two types
 ~~~~~
 
@@ -73,10 +73,10 @@ tSwap = Forall [TV "a", TV "b"] $
           (TVbl (TV "a") `TCom` TVbl (TV "b")) `TArr` ((TVbl (TV "b") `TCom` TVbl (TV "a")))
 \end{code}
 
-(b) Lists  
+(b) Lists
 ---------
 
-Next, let us add lists, to the language. Specifically, we 
+Next, let us add lists, to the language. Specifically, we
 extend the language of expressions `Expr` to include
 
 ~~~~~{.haskell}
@@ -90,17 +90,17 @@ data Exp = ...
 Correspondingly, we have extended the language of types to include
 
 ~~~~~{.haskell}
-data Type = ... 
-          | TList Type     -- TList t is a list of t values 
+data Type = ...
+          | TList Type     -- TList t is a list of t values
 ~~~~~
 
 Extend the definition of the `mgu` and `ti` functions to correctly infer
 types for the extended language.
 
-When you are done, you should be able to infer that in the environment 
+When you are done, you should be able to infer that in the environment
 
 \begin{code}
-env   = Map.fromList 
+env   = Map.fromList
   [ (EV "plus", Forall [] $ tArrs [TInt, TInt, TInt])
   , (EV "ite" , Forall [TV "a"] $ tArrs [TBool, TVbl (TV "a"), TVbl (TV "a"), TVbl (TV "a")])]
 
@@ -120,8 +120,8 @@ eInc  = EAbs (EV "x") $ eApps [ePlus, eOne, EVbl (EV "x")]
 eHd   = EAbs (EV "x") $ EFst (EDcons (EVbl (EV "x")))
 eTl   = EAbs (EV "x") $ ESnd (EDcons (EVbl (EV "x")))
 
-eList = EAbs (EV "x") 
-          (eIf (EIsNil (EVbl (EV "x"))) 
+eList = EAbs (EV "x")
+          (eIf (EIsNil (EVbl (EV "x")))
                eZero
                (eInc `EApp` ((eHd `EApp` (EVbl (EV "x"))) `EApp` eZero)))
 \end{code}
@@ -137,13 +137,13 @@ tList = Forall [] ((TList (TInt `TArr` TInt)) `TArr` TInt)
 where the helper functions are defined
 
 \begin{code}
-tArrs = foldr1 TArr 
+tArrs = foldr1 TArr
 eApps = foldl1 EApp
-eIf   = \b e1 e2 -> eApps [EVbl (EV "ite"), b, e1, e2] 
+eIf   = \b e1 e2 -> eApps [EVbl (EV "ite"), b, e1, e2]
 \end{code}
 
 
-(c) Recursion 
+(c) Recursion
 -------------
 
 Finally, we will add recursive functions to the language, via the following
@@ -162,19 +162,19 @@ of x!
 
 
 When you are done, you should be able to infer that the expressions `eTl`
-and `eLen` 
+and `eLen`
 
 \begin{code}
-eLen = ERec (EV "len") 
-          (EAbs (EV "xs") $ 
-             eIf (EIsNil (EVbl (EV "xs"))) 
-                 eZero 
+eLen = ERec (EV "len")
+          (EAbs (EV "xs") $
+             eIf (EIsNil (EVbl (EV "xs")))
+                 eZero
                  (eInc `EApp`(((EVbl (EV "len")) `EApp` (eTl `EApp` (EVbl (EV "xs")))))))
           (EVbl (EV "len"))
 
-eMap = ERec (EV "map") 
-          (EAbs (EV "f") $ EAbs (EV "xs") $ 
-             eIf (EIsNil (EVbl (EV "xs"))) 
+eMap = ERec (EV "map")
+          (EAbs (EV "f") $ EAbs (EV "xs") $
+             eIf (EIsNil (EVbl (EV "xs")))
                  ENil
                  (ECons (EVbl (EV "f") `EApp` (eHd `EApp` (EVbl (EV "xs"))))
                         ((EVbl (EV "map") `EApp` (EVbl (EV "f"))) `EApp`
@@ -196,7 +196,7 @@ Appendix: Code for Type Inference from Lecture
 ----------------------------------------------
 
 \begin{code}
-data Exp     =  EVbl EVbl 
+data Exp     =  EVbl EVbl
              |  ELit Lit
              |  EApp Exp Exp
              |  EAbs EVbl Exp
@@ -220,14 +220,14 @@ data Lit     =  LInt Integer
              |  LBool Bool
              deriving (Eq, Ord)
 
-data Type    =  TVbl TVbl 
+data Type    =  TVbl TVbl
              |  TInt
              |  TBool
              |  Type `TArr` Type
                                    -- part (a)
              |  Type `TCom` Type   -- Pair of two types
                                    -- part (b)
-             |  TList Type         -- TList t is a list of t values 
+             |  TList Type         -- TList t is a list of t values
              deriving (Eq, Ord)
 
 newtype TVbl = TV String deriving (Eq, Ord)
@@ -241,28 +241,28 @@ newtype TypeEnv = TypeEnv (Map.Map EVbl Scheme)
 
 type Subst = Map.Map TVbl Type
 
-class Substitutable a where 
+class Substitutable a where
   apply     :: Subst -> a -> a
   freeTvars :: a -> Set.Set TVbl
 
 instance Substitutable Type where
   apply _  TInt            = TInt
   apply _  TBool           = TBool
-  apply su t@(TVbl a)      = Map.findWithDefault t a su 
+  apply su t@(TVbl a)      = Map.findWithDefault t a su
   apply su (t1 `TArr` t2)  = apply su t1 `TArr` apply su t2
-  apply su (t1 `TCom` t2)  = error "TBD"
-  apply su (TList t)       = error "TBD"
+  apply su (t1 `TCom` t2)  = apply su t1 `TCom` apply su t2
+  apply su (TList t)       = TList (apply su t)
 
   freeTvars TInt           =  Set.empty
   freeTvars TBool          =  Set.empty
   freeTvars (TVbl a)       =  Set.singleton a
   freeTvars (t1 `TArr` t2) =  freeTvars t1 `Set.union` freeTvars t2
-  freeTvars (t1 `TCom` t2) = error "TBD"
-  freeTvars (TList t)      = error "TBD"
+  freeTvars (t1 `TCom` t2) =  freeTvars t1 `Set.union` freeTvars t2
+  freeTvars (TList t)      =  freeTvars t
 
 instance Substitutable Scheme where
-  apply s (Forall as t)   = Forall as $ apply s' t 
-                            where s' = foldr Map.delete s as 
+  apply s (Forall as t)   = Forall as $ apply s' t
+                            where s' = foldr Map.delete s as
 
   freeTvars (Forall as t) = (freeTvars t) `Set.difference` (Set.fromList as)
 
@@ -282,8 +282,10 @@ after         :: Subst -> Subst -> Subst
 su1 `after` su2 = (Map.map (apply su1) su2) `Map.union` su1
 
 
-mgu (l `TCom` r) (l' `TCom` r')  = error "TBD"
-mgu (TList t1) (TList t2)        = error "TBD"
+mgu (l `TCom` r) (l' `TCom` r')  = do  s1 <- mgu l l'
+                                       s2 <- mgu (apply s1 r) (apply s1 r')
+                                       return (s2 `after` s1)
+mgu (TList t1) (TList t2)        = mgu t1 t2
 mgu (l `TArr` r) (l' `TArr` r')  = do  s1 <- mgu l l'
                                        s2 <- mgu (apply s1 r) (apply s1 r')
                                        return (s2 `after` s1)
@@ -293,7 +295,7 @@ mgu TInt TInt                    = return empSubst
 mgu TBool TBool                  = return empSubst
 mgu t1 t2                        = throwError $ "types do not unify: " ++ show t1 ++ " vs. " ++ show t2
 
-varAsgn a t 
+varAsgn a t
   | t == TVbl a                  =  return empSubst
   | a `Set.member` (freeTvars t) =  throwError $ "occur check fails: " ++ show a ++ " in " ++ show t
   | otherwise                    =  return $ Map.singleton a t
@@ -312,19 +314,19 @@ fresh = do s     <- get
 
 freshTVbl prefix = fresh >>= return . TVbl . TV . (prefix ++) . show
 
-instantiate (Forall as t) = do as' <- mapM (\ _ -> freshTVbl "a") as 
+instantiate (Forall as t) = do as' <- mapM (\ _ -> freshTVbl "a") as
                                let s = Map.fromList $ zip as as'
                                return $ apply s t
 
-ti ::  (MonadState TIState m, MonadError String m) => 
+ti ::  (MonadState TIState m, MonadError String m) =>
        TypeEnv -> Exp -> m (Subst, Type)
 
 ti env (ELit (LInt _))  = return (empSubst, TInt)
 ti env (ELit (LBool _)) = return (empSubst, TBool)
-ti (TypeEnv env) (EVbl x) = 
+ti (TypeEnv env) (EVbl x) =
     case Map.lookup x env of
        Nothing   ->  throwError $ "unbound variable: " ++ show x
-       Just s    ->  instantiate s >>= return . (,) empSubst 
+       Just s    ->  instantiate s >>= return . (,) empSubst
 ti env (EAbs x e) =
     do  tv       <- freshTVbl "a"
         let env' = env \\ (x, Forall [] tv)
@@ -343,25 +345,59 @@ ti env (ELet x e1 e2) =
         (s2, t2) <- ti (apply s1 env') e2
         return (s2 `after` s1, t2)
 
-ti env (e1 `ECom` e2) = error "TBD"
-ti env (EFst e)       = error "TBD"
-ti env (ESnd e)       = error "TBD"
+ti env (e1 `ECom` e2) =
+    do (s1, t1) <- ti env e1
+       (s2, t2) <- ti (apply s1 env) e2
+       return (s2 `after` s1, apply s2 (t1 `TCom` t2))
 
-ti env ENil            = error "TBD"
-ti env (e1 `ECons` e2) = error "TBD"
-ti env (EIsNil e)      = error "TBD"
-ti env (EDcons e)      = error "TDB"
+ti env (EFst e)       =
+    do (s1, t1) <- ti env e
+       l        <- freshTVbl "a"
+       r        <- freshTVbl "b"
+       s2       <- mgu t1 (l `TCom` r)
+       return (s2 `after` s1, apply s2 l)
 
-ti env (ERec x e1 e2)  = error "TBD"
+ti env (ESnd e)       =
+    do (s1, t1) <- ti env e
+       l        <- freshTVbl "a"
+       r        <- freshTVbl "b"
+       s2       <- mgu t1 (l `TCom` r)
+       return (s2 `after` s1, apply s2 r)
+
+ti env ENil            =
+    do tv <- freshTVbl "a"
+       return (empSubst, TList tv)
+
+ti env (e1 `ECons` e2) =
+    do (s1, t1) <- ti env e1
+       (s2, t2) <- ti (apply s1 env) e2
+       s3       <- mgu t2 (TList (apply s2 t1))
+       return (s3 `after` s2 `after` s1, apply s3 t2)
+
+ti env (EIsNil e)      =
+    do (s1, t1) <- ti env e
+       tv       <- freshTVbl "a"
+       s2       <- mgu t1 (TList tv)
+       return (s2 `after` s1, TBool)
+
+ti env (EDcons e)      =
+    do (s1, t1) <- ti env e
+       tv       <- freshTVbl "a"
+       s2       <- mgu t1 (TList tv)
+       return (s2 `after` s1, (apply s2 tv) `TCom` (apply s2 (TList tv)))
+
+ti env (ERec x e1 e2)  =
+    do tv <- freshTVbl "a"
+       ti (env \\ (x, Forall [] tv)) (ELet x e1 e2)
 
 ti_top env e =
     do  (s, t) <- ti env e
         return  $ generalize (apply s env) (apply s t)
 
-typeInference :: TypeEnv -> Exp -> Either String Scheme 
+typeInference :: TypeEnv -> Exp -> Either String Scheme
 typeInference env e = res
   where act = ti_top env e
-        res = evalState (runErrorT act) s0 
+        res = evalState (runErrorT act) s0
         s0  = TIState { count = 0 }
 
 
@@ -384,6 +420,8 @@ prType (TVbl a)    =   prTVbl a
 prType TInt        =   PP.text "Int"
 prType TBool       =   PP.text "Bool"
 prType (TArr t s)  =   prParenType t PP.<+> PP.text "->" PP.<+> prType s
+prType (t1 `TCom` t2) = PP.text "(" PP.<+> prType t1 PP.<+> PP.text "," PP.<+> prType t2 PP.<+> PP.text ")"
+prType (TList t)   = prType t PP.<+> PP.text " list"
 prType _           =   PP.text "FINAL optional"
 
 prParenType     ::  Type -> PP.Doc
@@ -402,7 +440,11 @@ prEVbl (EV x)          = PP.text x
 prExp                  ::  Exp -> PP.Doc
 prExp (EVbl x)         =   prEVbl x
 prExp (ELit lit)       =   prLit lit
-prExp (ELet x b body)  =   PP.text "let" PP.<+> 
+prExp (ERec x b body)  =   PP.text "let rec" PP.<+>
+                             prEVbl x PP.<+> PP.text "=" PP.<+>
+                             prExp b PP.<+> PP.text "in" PP.$$
+                             PP.nest 2 (prExp body)
+prExp (ELet x b body)  =   PP.text "let" PP.<+>
                            prEVbl x PP.<+> PP.text "=" PP.<+>
                            prExp b PP.<+> PP.text "in" PP.$$
                            PP.nest 2 (prExp body)
@@ -410,8 +452,17 @@ prExp (EApp e1 e2)     =   prExp e1 PP.<+> prParenExp e2
 prExp (EAbs x e)       =   PP.char '\\' PP.<+> prEVbl x PP.<+>
                            PP.text "->" PP.<+>
                            prExp e
+
+prExp (EFst e)         =   PP.text "Fst " PP.<+> prParenExp e
+prExp (ESnd e)         =   PP.text "Snd " PP.<+> prParenExp e
+prExp ENil             =   PP.text "Nil"
+prExp (EIsNil e)       =   PP.text "IsNil " PP.<+> prParenExp e
+prExp (ECons e1 e2)    =   PP.text "(" PP.<+> prExp e1 PP.<+>
+                           PP.text " :: " PP.<+> prExp e2 PP.<+>
+                           PP.text ")"
+prExp (EDcons e)       =   PP.text "DCons " PP.<+> prParenExp e
+
 prExp _                =   PP.text "FINAL optional"
-                                                                   
 
 prParenExp    ::  Exp -> PP.Doc
 prParenExp t  =   case t of
