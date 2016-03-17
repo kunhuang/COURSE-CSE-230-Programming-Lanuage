@@ -16,7 +16,7 @@ Lists
 -- CHECKBINDER foldr1
 -- CHECKBINDER prop_zipWith
 -- CHECKBINDER prop_concat
- 
+
 
 module List ( List
             , empty
@@ -85,6 +85,7 @@ and then, lists whose size equals that of *another* list `Xs`:
 Write down a *refined* type for `length`:
 
 \begin{code}
+{-@ length:: l:(List a) -> {b:Int | b = (size l)} @-}
 length            :: List a -> Int
 length Emp        = 0
 length (x :+: xs) = 1 + length xs
@@ -119,13 +120,13 @@ LiquidHaskell verifies respect the given type signatures:
 
 \begin{code}
 {-@ empty :: ListN a 0 @-}
-empty = fixme "empty"
+empty = Emp
 
 {-@ add :: a -> xs:List a -> ListN a {1 + size xs} @-}
-add x xs = fixme "add"
+add x xs = x :+: xs
 
 {-@ singleton :: a -> ListN a 1 @-}
-singleton x = fixme "singleton"
+singleton x = x :+: Emp
 \end{code}
 
 (c) Replicating Values
@@ -136,8 +137,9 @@ for `replicate n x` which should return a `List` `n` copies of
 the value `x`:
 
 \begin{code}
-{-@ replicate :: Int -> a -> List a @-}
-replicate = fixme "replicate"
+{-@ replicate :: n:Nat -> a -> ListN a n @-}
+replicate 0 x = Emp
+replicate n x = x :+: replicate (n-1) x
 \end{code}
 
 When you are done, the following assertion should be verified by LH.
@@ -154,7 +156,7 @@ Fix the specification for `map` such that the assertion in `prop_map`
 is verified by LH. (This will require you to first complete part (a) above.)
 
 \begin{code}
-{-@ map :: (a -> b) -> List a -> List b @-}
+{-@ map :: (a -> b) -> l1:List a -> {l2:List b | (size l1) == (size l2)} @-}
 map f Emp        = Emp
 map f (x :+: xs) = f x :+: map f xs
 
@@ -169,7 +171,7 @@ Fix the specification for `foldr1` so that the call to `die` is
 verified by LH:
 
 \begin{code}
-{-@ foldr1 :: (a -> a -> a) -> List a -> a @-}
+{-@ foldr1 :: (a -> a -> a) -> {a1:(List a) | (size a1) > 0} -> a @-}
 foldr1 op (x :+: xs) = foldr op x xs
 foldr1 op Emp        = die "Cannot call foldr1 with empty list"
 
@@ -187,7 +189,7 @@ Fix the specification of `zipWith` so that LH verifies:
 + The assert inside `prop_zipwith`.
 
 \begin{code}
-{-@ zipWith :: (a -> b -> c) -> List a -> List b -> List c @-}
+{-@ zipWith :: (a -> b -> c) -> a1:List a -> ListX b a1 -> ListX c a1 @-}
 zipWith _ Emp Emp               = Emp
 zipWith f (x :+: xs) (y :+: ys) = f x y :+: zipWith f xs ys
 zipWith f _          _          = die  "Bad call to zipWith"
@@ -208,8 +210,17 @@ is verified by LH. Feel free to write any other code
 or specification (types, measures) that you need.
 
 \begin{code}
-{-@ concat :: List (List a) -> List a @-}
-concat = fixme "concat"
+{-@ measure nestSize :: List (List a) -> Int
+    nestSize Emp = 0
+    nestSize ((:+:) x xs) = (size x) + (nestSize xs)
+@-}
+{-@ concat :: l1: List (List a) -> {l2: List a | (nestSize l1) = (size l2)} @-}
+concat Emp = Emp
+concat (xs1 :+: xs2) = addList xs1 (concat xs2)
+
+{-@ addList:: l1:List a -> l2:List a -> {l3:List a | (size l3) = (size l2) + (size l1)} @-}
+addList Emp x = x
+addList (x :+: xs1) xs2 = x :+: addList xs1 xs2
 
 prop_concat = lAssert (length (concat xss) == 6)
   where
