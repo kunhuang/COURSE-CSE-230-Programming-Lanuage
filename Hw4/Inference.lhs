@@ -386,9 +386,16 @@ ti env (EDcons e)      =
        s2       <- mgu t1 (TList tv)
        return (s2 `after` s1, (apply s2 tv) `TCom` (apply s2 (TList tv)))
 
-ti env (ERec x e1 e2)  =
+ti env (ERec x e1 e2) = 
     do tv <- freshTVbl "a"
-       ti (env \\ (x, Forall [] tv)) (ELet x e1 e2)
+       let env'  = env \\ (x, Forall [] tv)
+       (s1, tx_out) <- ti env' e1
+       s2 <- mgu (apply s1 tv) tx_out
+       let s3    = s2 `after` s1
+           t'    = generalize (apply s3 env) (apply s3 tx_out)
+           env'' = env \\ (x, t')
+       (s4, t2) <- ti (apply s3 env'') e2
+       return (s4 `after` s3, t2)
 
 ti_top env e =
     do  (s, t) <- ti env e
